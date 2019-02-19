@@ -376,7 +376,7 @@ __global__ void countTriangles(float3 *d_p1, float3 **d_p2, float3 **d_p3, int *
     }
 }
 
-std::vector<int> getShifts() {
+std::vector<int3> getShifts() {
     std::vector<int3> shifts;
     for (int i = -1; i <= 1; ++i) {
         for (int j = -1; j <= 1; ++j) {
@@ -394,6 +394,16 @@ int npcf::calculateCorrelations(float3 *galaxies) {
     float3 L = {l, l, l};
     float R = (float)npcf::r_max;
     float r = (float)npcf::r_min;
-    std::vector<int> shifts = getShifts();
+    std::vector<int3> shifts = getShifts();
     
-    cudaMemcpyToSymbol(
+    cudaMemcpyToSymbol(d_shift, shifts.data(), shifts.size()*sizeof(int3));
+    cudaMemcpyToSymbol(d_L, &L, sizeof(float3));
+    cudaMemcpyToSymbol(d_R, &R, sizeof(float));
+    cudaMemcpyToSymbol(d_r, &r, sizeof(float));
+    cudaMemcpyToSymbol(d_Nparts, &npcf::N_parts, sizeof(int));
+    cudaMemcpyToSymbol(d_Nshells, &npcf::N_shells, sizeof(int));
+    
+    // Find the cell size such that the box size is an integer multiple of the cell size
+    int l_c = floor(L.x/R);
+    double L_c = L.x/l_c;
+    int3 N = {l_c, l_c, l_c};

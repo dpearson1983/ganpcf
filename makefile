@@ -20,4 +20,4 @@ obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 	$(CXX) $(CXXFLAGS) -c source/ganpcf_capi.cpp -o obj/ganpcf_capi.o
 	
 obj/ganpcf.o: source/ganpcf.cu
-	$(VXX) $(VXXFLAGS) -c source/ganpcf.cu -o obj/ganpcf.o
+	$(VXX) $(VXXFLAGS) -dc source/ganpcf.cu -o obj/ganpcf.o
