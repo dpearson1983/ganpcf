@@ -17,6 +17,8 @@ class npcf{
     // Private member functions
     void initVectors();
     
+    void rezeroVectors();
+    
     void swapIfGreater(double &a, double &b);
     
     double sphereOverlapVolume(double d, double R, double r);

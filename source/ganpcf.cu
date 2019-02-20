@@ -4,6 +4,8 @@
 #include <vector_types.h>
 #include "../include/ganpcf.hpp"
 
+#define N_threads 64
+
 __constant__ int3 d_shifts[27];
 __constant__ float d_R;
 __constant__ float d_r;
@@ -24,16 +26,16 @@ void npcf::initVectors() {
                 double r3 = npcf::r_min + (k + 0.5)*npcf::Delta_r
                 if (r3 <= r1 + r2) {
                     npcf::threePoint.push_back(0.0);
-                    npcf::DDD.push_back(0);
-                    npcf::DDR.push_back(0);
-                    npcf::DRR.push_back(0);
-                    npcf::RRR.push_back(0);
                     float3 tri = {(float)r1, (float)r2, (float)r3};
                     npcf::triangles.push_back(tri);
                 }
             }
         }
     }
+    npcf::DDD.resize(npcf::N_shells*npcf::N_shells*npcf::N_shells);
+    npcf::DDR.resize(npcf::N_shells*npcf::N_shells*npcf::N_shells);
+    npcf::DRR.resize(npcf::N_shells*npcf::N_shells*npcf::N_shells);
+    npcf::RRR.resize(npcf::N_shells*npcf::N_shells*npcf::N_shells);
     
     npcf::w = {0.8888888888888888, 0.5555555555555556, 0.5555555555555556};
     
@@ -86,31 +88,31 @@ double npcf::sphericalShellVolume(double r) {
     return 4.0*M_PI*(r_o*r_o*r_o - r_i*r_i*r_i)/3.0;
 }
 
-double npcf::nbarData(std::vector<int> &DD, double r, double r1) {
+double npcf::nbarData(double r, double r1) {
     int bin = r/npcf::Delta_r;
-    double nbar = DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
-    int num_bins = DD.size();
+    double nbar = npcf::DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
+    int num_bins = npcf::DD.size();
     if (r <= (bin + 0.5)*npcf::Delta_r) {
         if (bin != 0) {
-            double n1 = DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
-            double n2 = DD[bin - 1]/(npcf::N_parts*sphericalShellVolume(r1 - npcf::Delta_r));
+            double n1 = npcf::DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
+            double n2 = npcf::DD[bin - 1]/(npcf::N_parts*sphericalShellVolume(r1 - npcf::Delta_r));
             double b = n1 - ((n1 - n2)/npcf::Delta_r)*r1;
             nbar = ((n1 - n2)/npcf::Delta_r)*r + b;
         } else {
-            double n1 = DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
-            double n2 = DD[bin + 1]/(npcf::N_parts*sphericalShellVolume(r1 + npcf::Delta_r));
+            double n1 = npcf::DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
+            double n2 = npcf::DD[bin + 1]/(npcf::N_parts*sphericalShellVolume(r1 + npcf::Delta_r));
             double b = n1 - ((n2 - n1)/npcf::Delta_r)*r1;
             nbar = ((n2 - n1)/npcf::Delta_r)*r + b;
         }
     } else {
         if (bin != num_bins - 1) {
-            double n1 = DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
-            double n2 = DD[bin + 1]/(npcf::N_parts*sphericalShellVolume(r1 + npcf::Delta_r));
+            double n1 = npcf::DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
+            double n2 = npcf::DD[bin + 1]/(npcf::N_parts*sphericalShellVolume(r1 + npcf::Delta_r));
             double b = n1 - ((n2 - n1)/npcf::Delta_r)*r1;
             nbar = ((n2 - n1)/npcf::Delta_r)*r + b;
         } else {
-            double n1 = DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
-            double n2 = DD[bin - 1]/(npcf::N_parts*sphericalShellVolume(r1 - npcf::Delta_r));
+            double n1 = npcf::DD[bin]/(npcf::N_parts*sphericalShellVolume(r1));
+            double n2 = npcf::DD[bin - 1]/(npcf::N_parts*sphericalShellVolume(r1 - npcf::Delta_r));
             double b = n1 - ((n1 - n2)/npcf::Delta_r)*r1;
             nbar = ((n1 - n2)/npcf::Delta_r)*r + b;
         }
@@ -127,11 +129,11 @@ double npcf::gaussQuadCrossSection(double r1, double r2, double r3) {
     return result;
 }
 
-double npcf::gaussQuadCrossSectionDDR(std::vector<int> &DD, double r1, double r2, double r3) {
+double npcf::gaussQuadCrossSectionDDR(double r1, double r2, double r3) {
     double result = 0.0;
     for (int i = 0; i < npcf::w.size(); ++i) {
         double r_1 = r1 + 0.5*npcf::Delta_r*npcf::x[i];
-        double nbar = nbarData(DD, r_1, r1);
+        double nbar = nbarData(r_1, r1);
         result += 0.5*npcf::Delta_r*npcf::w[i]*crossSectionVolume(r_1, r2, r3)*r_1*r_1*nbar;
     }
     return result;
@@ -170,6 +172,7 @@ int npcf::getTriangles(float3 *tris[]) {
 int npcf::setNumParts(int numParticles) {
     npcf::N_parts = numParticles;
     npcf::N_rans = numParticles*npcf::timesRan;
+    npcf::nbar_ran = npcf::N_rans/npcf::V_box;
 }
 
 void npcf::getRRR() {
@@ -211,29 +214,35 @@ void npcf::getDDR() {
                 double r3 = npcf::rs[k];
                 if (npcf::rs[k] <= npcf::rs[i] + npcf::rs[j]) {
                    int index = k + npcf::N_shells*(j + npcf::N_shells*i);
-                   double V = npcf::gaussQuadCrossSectionDDR(DD, r1, r2, r3);
+                   double V = npcf::gaussQuadCrossSectionDDR(r1, r2, r3);
                    double N_temp = 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
                    if (r1 != r2 && r1 != r3 && r2 != r3) {
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r2, r3, r1);
+                       V = npcf::gaussQuadCrossSectionDDR(r2, r3, r1);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r3, r1, r2);
+                       V = npcf::gaussQuadCrossSectionDDR(r3, r1, r2);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r1, r3, r2);
+                       V = npcf::gaussQuadCrossSectionDDR(r1, r3, r2);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r2, r1, r3);
+                       V = npcf::gaussQuadCrossSectionDDR(r2, r1, r3);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r3, r2, r1);
+                       V = npcf::gaussQuadCrossSectionDDR(r3, r2, r1);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
                    } else if ((r1 == r2 && r1 != r3) || (r1 == r3 && r1 != r2) || (r2 == r3 && r2 != r1)) {
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r2, r3, r1);
+                       V = npcf::gaussQuadCrossSectionDDR(r2, r3, r1);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
-                       V = npcf::gaussQuadCrossSectionDDR(DD, r3, r1, r2);
+                       V = npcf::gaussQuadCrossSectionDDR(r3, r1, r2);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
                    }
                    npcf::DDR[index] = int(floor(N_temp + 0.5));
                 }
             }
         }
+    }
+}
+
+void npcf::getDR() {
+    for (int i = 0; i < npcf::rs.size(); ++i) {
+        npcf::DR[i] = npcf::sphericalShellVolume(npcf::rs[i])*npcf::nbar_ran*npcf::N_parts;
     }
 }
 
@@ -389,12 +398,29 @@ std::vector<int3> getShifts() {
     return shifts;
 }
 
-int npcf::calculateCorrelations(float3 *galaxies) {
+void npcf::rezeroVectors() {
+#pragma omp parallel for
+    for (int i = 0; i < npcf::DD.size(); ++i) {
+        npcf::DD[i] = 0;
+        npcf::DR[i] = 0;
+    }
+#pragma omp parallel for
+    for (int i = 0;  i < npcf::DDD.size(); ++i) {
+        npcf::DDD[i] = 0;
+        npcf::DDR[i] = 0;
+        npcf::DRR[i] = 0;
+        npcf::RRR[i] = 0;
+    }
+}
+
+int npcf::calculateCorrelations(float3 *galaxies[]) {
     float l = (float)pow(npcf::V_box, 1.0/3.0);
     float3 L = {l, l, l};
     float R = (float)npcf::r_max;
     float r = (float)npcf::r_min;
     std::vector<int3> shifts = getShifts();
+    
+    npcf::rezeroVectors();
     
     cudaMemcpyToSymbol(d_shift, shifts.data(), shifts.size()*sizeof(int3));
     cudaMemcpyToSymbol(d_L, &L, sizeof(float3));
@@ -407,3 +433,86 @@ int npcf::calculateCorrelations(float3 *galaxies) {
     int l_c = floor(L.x/R);
     double L_c = L.x/l_c;
     int3 N = {l_c, l_c, l_c};
+    
+    std::vector<std::vector<float3>> gals(N.x*N.y*N.z);
+    std::vector<int> sizes;
+    float3 **d_gals;
+    float3 *d_galaxies;
+    int *d_DD, *d_DDD, *d_sizes;
+    
+    for (int i = 0; i < npcf::N_parts; ++i) {
+        int ix = galaxies[0][i].x/L_c;
+        int iy = galaxies[0][i].y/L_c;
+        int iz = galaxies[0][i].z/L_c;
+        int index = iz + N.z*(iy + N.y*ix);
+        gals[index].push_back(galaxies[0][i]);
+    }
+    
+    float3 **h_gals = (float3 **)malloc(gals.size()*sizeof(float3 *));
+    for (int i = 0; i < gals.size(); ++i) {
+        sizes.push_back(gals[i].size());
+        cudaMalloc((void **)&h_gals[i], gals[i].size()*sizeof(float3));
+        cudaMemcpy(h_gals[i], gals[i].data(), gals[i].size()*sizeof(float3), cudaMemcpyHostToDevice);
+        for (int j = 0; j < gals[i].size(); ++j) {
+            galaxies[0][j].x = gals[i][j].x;
+            galaxies[0][j].y = gals[i][j].y;
+            galaxies[0][j].z = gals[i][j].z;
+        }
+    }
+    cudaMalloc(&d_gals, gals.size()*sizeof(float3 *));
+    cudaMemcpy(d_gals, h_gals, gals.size()*sizeof(float3 *), cudaMemcpyHostToDevice);
+    
+    cudaMalloc((void **)&d_galaxies, npcf::N_parts*sizeof(float3));
+    cudaMalloc((void **)&d_sizes, sizes.size()*sizeof(int));
+    cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int));
+    cudaMalloc((void **)&d_DDD, npcf::DDD.size()*sizeof(int));
+    
+    cudaMemcpy(d_galaxies, galaxies[0], npcf::N_parts*sizeof(float3), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(int), cudaMemcpyHostToDevice);
+    
+    int N_blocks = npcf::N_parts/N_threds + 1;
+    
+    countPairs<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_sizes, d_DD, N);
+    countTriangles<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_gals, d_sizes, d_sizes, d_DDD, N);
+    
+    cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(npcf::DDD.data(), d_DDD, npcf::DDD.size()*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    
+    getDR();
+    getRRR();
+    getDRR();
+    getDDR();
+    
+    double alpha = double(npcf::N_parts)/double(npcf::N_rans);
+    for (int i = 0; i < npcf::twoPoint.size(); ++i) {
+        npcf::twoPoint[i] = double(npcf::DD[i])/(alpha*double(npcf::DR[i])) - 1.0;
+    }
+    
+    for (int i = 0; i < npcf::threePoint.size(); ++i) {
+        int ix = npcf::triangles[i].x/npcf::Delta_r;
+        int iy = npcf::triangles[i].y/npcf::Delta_r;
+        int iz = npcf::triangles[i].z/npcf::Delta_r;
+        int index = iz + npcf::N_shells*(iy + npcf::N_shells*ix);
+        npcf::threePoint[i] = (double(npcf::DDD[index]) - 3.0*alpha*double(npcf::DDR[index]) 
+                               + 3.0*alpha*alpha*double(npcf::DRR[index]) -
+                               alpha*alpha*alpha*double(npcf::RRR[index]))/
+                               (alpha*alpha*alpha*double(npcf::RRR[index]));
+    }
+}
+
+int npcf::get2pt(double *twoPt[]) {
+    for (int i = 0; i < npcf::twoPoint.size(); ++i) {
+        twoPt[0][i] = npcf::twoPoint[i];
+    }
+    return 1;
+}
+
+int npcf::get3pt(double *threePt[]) {
+    for (int i = 0; i < npcf::threePoint.size(); ++i) {
+        threePt[0][i] = npcf::threePoint[i];
+    }
+    return 1;
+}
