@@ -22,6 +22,10 @@ extern "C" {
     
     int set_num_particles(NPCF *obj, int numParticles);
     
+    int get_2pt_size(NPCF *obj);
+    
+    int get_3pt_size(NPCF *obj);
+    
     int calculate_correlations(NPCF *obj, float3 *galaxies[]);
     
     int get_2pt(NPCF *obj, double *twoPt[]);
