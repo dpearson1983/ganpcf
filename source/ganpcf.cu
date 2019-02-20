@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <cuda.h>
@@ -446,21 +447,26 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     
     for (int i = 0; i < npcf::N_parts; ++i) {
         int ix = galaxies[0][i].x/L_c;
+        if (ix == N.x) ix--;
         int iy = galaxies[0][i].y/L_c;
+        if (iy == N.y) iy--;
         int iz = galaxies[0][i].z/L_c;
+        if (iz == N.z) iz--;
         int index = iz + N.z*(iy + N.y*ix);
         gals[index].push_back(galaxies[0][i]);
     }
     
+    std::vector<float3> gal_vec;
     float3 **h_gals = (float3 **)malloc(gals.size()*sizeof(float3 *));
     for (int i = 0; i < gals.size(); ++i) {
         sizes.push_back(gals[i].size());
         cudaMalloc((void **)&h_gals[i], gals[i].size()*sizeof(float3));
         cudaMemcpy(h_gals[i], gals[i].data(), gals[i].size()*sizeof(float3), cudaMemcpyHostToDevice);
         for (int j = 0; j < gals[i].size(); ++j) {
-            galaxies[0][j].x = gals[i][j].x;
-            galaxies[0][j].y = gals[i][j].y;
-            galaxies[0][j].z = gals[i][j].z;
+//             galaxies[0][j].x = gals[i][j].x;
+//             galaxies[0][j].y = gals[i][j].y;
+//             galaxies[0][j].z = gals[i][j].z;
+            gal_vec.push_back(gals[i][j]);
         }
     }
     cudaMalloc(&d_gals, gals.size()*sizeof(float3 *));
@@ -471,7 +477,7 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int));
     cudaMalloc((void **)&d_DDD, npcf::DDD.size()*sizeof(int));
     
-    cudaMemcpy(d_galaxies, galaxies[0], npcf::N_parts*sizeof(float3), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_galaxies, gal_vec.data(), gal_vec.size()*sizeof(float3), cudaMemcpyHostToDevice);
     cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(int), cudaMemcpyHostToDevice);
@@ -491,7 +497,9 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     getDDR();
     
     double alpha = double(npcf::N_parts)/double(npcf::N_rans);
+    std::cout << alpha << std::endl;
     for (int i = 0; i < npcf::twoPoint.size(); ++i) {
+        std::cout << npcf::DD[i] << std::endl;
         npcf::twoPoint[i] = double(npcf::DD[i])/(alpha*double(npcf::DR[i])) - 1.0;
     }
     

@@ -25,3 +25,4 @@ obj/ganpcf.o: source/ganpcf.cu
 clean:
 	rm obj/*.o
 	rm libnpcf.mod
+	rm emulator

@@ -24,6 +24,7 @@ program emulator
     ! This function determines the number of unique triangles such that r1 <= r2 <= r3. This will remain
     ! the same for all realizations
     numTriangles = corr%getNumTriangles()
+    print *, numTriangles
     
     ! Set up storage for the correlation functions
     allocate(shells(numShells))
@@ -41,8 +42,8 @@ program emulator
         ! Instead of reading from a file, your code will generate the list of galaxies
         open(1, file = 'LNKNLogsVelFortran_01.dat', status = 'old')
         read (1,*) s1
-        allocate(pos(s1))
-    
+        allocate(pos(s1)) 
+        
         do i = 1,s1
             read(1,*)pos(i)
         end do
@@ -59,6 +60,19 @@ program emulator
         dummy = corr%get3pt(threePoint)
         
         ! Your code would then compute the likelihood and move to the next parameter vector guess
+        
+    ! Output the 2 and 3 point functions for testing purposes
+    open(2, file = 'twoPoint.dat', status = 'new')
+    do i = 1,numshells
+        write (2,*), shells(i), twoPoint(i)
+    end do
+    close(2)
+    
+    open(3, file = 'threePoint.dat', status = 'new')
+    do i = 1,numTriangles
+        write (3,*), triangles(i), threePoint(i)
+    end do
+    close(3)
     
     ! Free the memory of dynamically allocated arrays
     deallocate(shells)
