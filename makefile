@@ -5,10 +5,10 @@ VXX = nvcc $(ARCHS) -ccbin=cuda-g++
 FCFLAGS = -march=native -mtune=native -O3
 CXXFLAGS = -march=native -mtune=native -O3
 VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
-LDFLAGS = -lstdc++ -lcudart
+LDFLAGS = -lstdc++ -lcudart -lcuda
 
 emulator: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o obj/emulator.o
-	$(FC) $^ -o emulator $(LDFLAGS)
+	$(FC) $(LDFLAGS) $^ -o emulator
 	
 obj/emulator.o: source/emulator.f90
 	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.o
@@ -20,7 +20,7 @@ obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 	$(CXX) $(CXXFLAGS) -c source/ganpcf_capi.cpp -o obj/ganpcf_capi.o
 	
 obj/ganpcf.o: source/ganpcf.cu
-	$(VXX) $(VXXFLAGS) -dc source/ganpcf.cu -o obj/ganpcf.o
+	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
 
 clean:
 	rm obj/*.o

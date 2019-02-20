@@ -1,6 +1,7 @@
 #include <vector>
 #include <cmath>
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <vector_types.h>
 #include "../include/ganpcf.hpp"
 
@@ -504,6 +505,16 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
                                alpha*alpha*alpha*double(npcf::RRR[index]))/
                                (alpha*alpha*alpha*double(npcf::RRR[index]));
     }
+    
+    cudaFree(d_DDD);
+    cudaFree(d_DD);
+    cudaFree(d_sizes);
+    cudaFree(d_galaxies);
+    for (int i = 0; i < gals.size(); ++i) {
+        cudaFree(h_gals[i]);
+    }
+    cudaFree(d_gals);
+    delete[] h_gals;
     return 1;
 }
 
