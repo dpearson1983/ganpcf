@@ -52,7 +52,7 @@ program emulator
         dummy = corr%setNumParticles(s1)
         
         ! Next we tell the library to compute the correlations given the list of galaxies
-        dummy = corr%computeCorrelations(pos)
+        dummy = corr%calculateCorrelations(pos)
         
         ! Then we can copy the results back to the Fortran side
         dummy = corr%get2pt(twoPoint)

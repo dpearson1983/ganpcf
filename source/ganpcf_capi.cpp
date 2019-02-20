@@ -2,7 +2,7 @@
 #include "../include/ganpcf.h"
 
 NPCF *create_npcf(int timesRandoms, int numShells, double volBox, double rMin, double rMax) {
-    return new npcf(numParticles, timesRandoms, numShells, volBox, rMin, rMax);
+    return new npcf(timesRandoms, numShells, volBox, rMin, rMax);
 }
 
 void delete_npcf(NPCF *obj) {
@@ -18,7 +18,7 @@ int get_num_triangles(NPCF *obj) {
 }
 
 int get_triangles(NPCF *obj, float3 *tris[]) {
-    return obj->get_triangles(tris);
+    return obj->getTriangles(tris);
 }
 
 int set_num_particles(NPCF *obj, int numParticles) {
@@ -38,9 +38,9 @@ int calculate_correlations(NPCF *obj, float3 *galaxies[]) {
 }
 
 int get_2pt(NPCF *obj, double *twoPt[]) {
-    return obj->get2pt(twoPt[]);
+    return obj->get2pt(twoPt);
 }
 
 int get_3pt(NPCF *obj, double *threePt[]) {
-    return obj->get3pt(threePt[]);
+    return obj->get3pt(threePt);
 }

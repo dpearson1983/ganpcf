@@ -29,11 +29,11 @@ class npcf{
     
     double sphericalShellVolume(double r);
     
-    double nbarData(std::vector<int> &DD, double r, double r1);
+    double nbarData(double r, double r1);
     
     double gaussQuadCrossSection(double r1, double r2, double r3);
     
-    double gaussQuadCrossSectionDDR(std::vector<int> &DD, double r1, double r2, double r3);
+    double gaussQuadCrossSectionDDR(double r1, double r2, double r3);
     
     void getRRR();
     

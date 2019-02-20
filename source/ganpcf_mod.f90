@@ -71,7 +71,7 @@ module libnpcf
         integer function get_triangles(this, tris)
             implicit none
             class(npcf) :: this
-            type(float3), dimension(:) :: tris)
+            type(float3), dimension(:) :: tris
             get_triangles = get_triangles_c(this%ptr, tris)
         end function
         

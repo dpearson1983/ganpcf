@@ -9,9 +9,9 @@
 __constant__ int3 d_shifts[27];
 __constant__ float d_R;
 __constant__ float d_r;
-__constant__ float d_L;
-__constant__ d_Nshells;
-__constant__ d_Nparts;
+__constant__ float3 d_L;
+__constant__ int d_Nshells;
+__constant__ int d_Nparts;
 
 void npcf::initVectors() {
     for (int i = 0; i < npcf::N_shells; ++i) {
@@ -21,9 +21,9 @@ void npcf::initVectors() {
         npcf::DD.push_back(0);
         npcf::DR.push_back(0);
         for (int j = i; j < npcf::N_shells; ++j) {
-            double r2 = npcf::r_min + (j + 0.5)*npcf::Delta_r
+            double r2 = npcf::r_min + (j + 0.5)*npcf::Delta_r;
             for (int k = j; k < npcf::N_shells; ++k) {
-                double r3 = npcf::r_min + (k + 0.5)*npcf::Delta_r
+                double r3 = npcf::r_min + (k + 0.5)*npcf::Delta_r;
                 if (r3 <= r1 + r2) {
                     npcf::threePoint.push_back(0.0);
                     float3 tri = {(float)r1, (float)r2, (float)r3};
@@ -146,7 +146,6 @@ npcf::npcf(int timesRandoms, int numShells, double VolBox, double rMin, double r
     npcf::r_min = rMin;
     npcf::V_box = VolBox;
     npcf::Delta_r = (rMax - rMin)/numShells;
-    npcf::nbar_ran = numRandoms/VolBox;
     npcf::initVectors();
 }
 
@@ -169,10 +168,11 @@ int npcf::getTriangles(float3 *tris[]) {
     return 1;
 }
         
-int npcf::setNumParts(int numParticles) {
+int npcf::setNumParticles(int numParticles) {
     npcf::N_parts = numParticles;
     npcf::N_rans = numParticles*npcf::timesRan;
     npcf::nbar_ran = npcf::N_rans/npcf::V_box;
+    return 1;
 }
 
 void npcf::getRRR() {
@@ -422,12 +422,15 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     
     npcf::rezeroVectors();
     
-    cudaMemcpyToSymbol(d_shift, shifts.data(), shifts.size()*sizeof(int3));
+    int numParts = npcf::N_parts;
+    int numShells = npcf::N_shells;
+    
+    cudaMemcpyToSymbol(d_shifts, shifts.data(), shifts.size()*sizeof(int3));
     cudaMemcpyToSymbol(d_L, &L, sizeof(float3));
     cudaMemcpyToSymbol(d_R, &R, sizeof(float));
     cudaMemcpyToSymbol(d_r, &r, sizeof(float));
-    cudaMemcpyToSymbol(d_Nparts, &npcf::N_parts, sizeof(int));
-    cudaMemcpyToSymbol(d_Nshells, &npcf::N_shells, sizeof(int));
+    cudaMemcpyToSymbol(d_Nparts, &numParts, sizeof(int));
+    cudaMemcpyToSymbol(d_Nshells, &numShells, sizeof(int));
     
     // Find the cell size such that the box size is an integer multiple of the cell size
     int l_c = floor(L.x/R);
@@ -472,7 +475,7 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(int), cudaMemcpyHostToDevice);
     
-    int N_blocks = npcf::N_parts/N_threds + 1;
+    int N_blocks = npcf::N_parts/N_threads + 1;
     
     countPairs<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_sizes, d_DD, N);
     countTriangles<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_gals, d_sizes, d_sizes, d_DDD, N);
@@ -501,6 +504,7 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
                                alpha*alpha*alpha*double(npcf::RRR[index]))/
                                (alpha*alpha*alpha*double(npcf::RRR[index]));
     }
+    return 1;
 }
 
 int npcf::get2pt(double *twoPt[]) {

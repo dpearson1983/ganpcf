@@ -21,3 +21,7 @@ obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 	
 obj/ganpcf.o: source/ganpcf.cu
 	$(VXX) $(VXXFLAGS) -dc source/ganpcf.cu -o obj/ganpcf.o
+
+clean:
+	rm obj/*.o
+	rm libnpcf.mod
