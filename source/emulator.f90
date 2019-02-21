@@ -24,7 +24,6 @@ program emulator
     ! This function determines the number of unique triangles such that r1 <= r2 <= r3. This will remain
     ! the same for all realizations
     numTriangles = corr%getNumTriangles()
-    print *, numTriangles
     
     ! Set up storage for the correlation functions
     allocate(shells(numShells))

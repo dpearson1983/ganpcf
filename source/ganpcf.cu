@@ -327,6 +327,9 @@ __global__ void countPairs(float3 *d_p1, float3 **d_p2, int *p2_sizes, int *d_pa
     if (tid < d_Nparts) {
         float3 r1 = d_p1[tid];
         int4 ngp1 = {int(r1.x/d_R), int(r1.y/d_R), int(r1.z/d_R), 0};
+        if (ngp1.x == n.x) ngp1.x--;
+        if (ngp1.y == n.x) ngp1.y--;
+        if (ngp1.z == n.x) ngp1.z--;
         for (int i = 0; i < 27; ++i) {
             float3 rShift2;
             int4 index = get_index(ngp1, i, n, rShift2);
@@ -505,9 +508,7 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     getDDR();
     
     double alpha = double(npcf::N_parts)/double(npcf::N_rans);
-    std::cout << alpha << std::endl;
     for (int i = 0; i < npcf::twoPoint.size(); ++i) {
-        std::cout << npcf::DD[i] << std::endl;
         npcf::twoPoint[i] = double(npcf::DD[i])/(alpha*double(npcf::DR[i])) - 1.0;
     }
     
