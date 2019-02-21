@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <vector_types.h>
+#include "../include/gpuerrchk.h"
 #include "../include/ganpcf.hpp"
 
 #define N_threads 64
@@ -353,6 +354,9 @@ __global__ void countTriangles(float3 *d_p1, float3 **d_p2, float3 **d_p3, int *
     if (tid < d_Nparts) {
         float3 r1 = d_p1[tid];
         int4 ngp1 = {int(r1.x/d_R), int(r1.y/d_R), int(r1.z/d_R), 0};
+        if (ngp1.x == n.x) ngp1.x--;
+        if (ngp1.y == n.x) ngp1.y--;
+        if (ngp1.z == n.x) ngp1.z--;
         for (int i = 0; i < 27; ++i) {
             float3 rShift2;
             int4 index = get_index(ngp1, i, n, rShift2);
@@ -427,12 +431,12 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     int numParts = npcf::N_parts;
     int numShells = npcf::N_shells;
     
-    cudaMemcpyToSymbol(d_shifts, shifts.data(), shifts.size()*sizeof(int3));
-    cudaMemcpyToSymbol(d_L, &L, sizeof(float3));
-    cudaMemcpyToSymbol(d_R, &R, sizeof(float));
-    cudaMemcpyToSymbol(d_r, &r, sizeof(float));
-    cudaMemcpyToSymbol(d_Nparts, &numParts, sizeof(int));
-    cudaMemcpyToSymbol(d_Nshells, &numShells, sizeof(int));
+    gpuErrchk(cudaMemcpyToSymbol(d_shifts, shifts.data(), shifts.size()*sizeof(int3)));
+    gpuErrchk(cudaMemcpyToSymbol(d_L, &L, sizeof(float3)));
+    gpuErrchk(cudaMemcpyToSymbol(d_R, &R, sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(d_r, &r, sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(d_Nparts, &numParts, sizeof(int)));
+    gpuErrchk(cudaMemcpyToSymbol(d_Nshells, &numShells, sizeof(int)));
     
     // Find the cell size such that the box size is an integer multiple of the cell size
     int l_c = floor(L.x/R);
@@ -460,8 +464,8 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     float3 **h_gals = (float3 **)malloc(gals.size()*sizeof(float3 *));
     for (int i = 0; i < gals.size(); ++i) {
         sizes.push_back(gals[i].size());
-        cudaMalloc((void **)&h_gals[i], gals[i].size()*sizeof(float3));
-        cudaMemcpy(h_gals[i], gals[i].data(), gals[i].size()*sizeof(float3), cudaMemcpyHostToDevice);
+        gpuErrchk(cudaMalloc((void **)&h_gals[i], gals[i].size()*sizeof(float3)));
+        gpuErrchk(cudaMemcpy(h_gals[i], gals[i].data(), gals[i].size()*sizeof(float3), cudaMemcpyHostToDevice));
         for (int j = 0; j < gals[i].size(); ++j) {
 //             galaxies[0][j].x = gals[i][j].x;
 //             galaxies[0][j].y = gals[i][j].y;
@@ -469,27 +473,31 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
             gal_vec.push_back(gals[i][j]);
         }
     }
-    cudaMalloc(&d_gals, gals.size()*sizeof(float3 *));
-    cudaMemcpy(d_gals, h_gals, gals.size()*sizeof(float3 *), cudaMemcpyHostToDevice);
+    gpuErrchk(cudaMalloc(&d_gals, gals.size()*sizeof(float3 *)));
+    gpuErrchk(cudaMemcpy(d_gals, h_gals, gals.size()*sizeof(float3 *), cudaMemcpyHostToDevice));
     
-    cudaMalloc((void **)&d_galaxies, npcf::N_parts*sizeof(float3));
-    cudaMalloc((void **)&d_sizes, sizes.size()*sizeof(int));
-    cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int));
-    cudaMalloc((void **)&d_DDD, npcf::DDD.size()*sizeof(int));
+    gpuErrchk(cudaMalloc((void **)&d_galaxies, npcf::N_parts*sizeof(float3)));
+    gpuErrchk(cudaMalloc((void **)&d_sizes, sizes.size()*sizeof(int)));
+    gpuErrchk(cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int)));
+    gpuErrchk(cudaMalloc((void **)&d_DDD, npcf::DDD.size()*sizeof(int)));
     
-    cudaMemcpy(d_galaxies, gal_vec.data(), gal_vec.size()*sizeof(float3), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(int), cudaMemcpyHostToDevice);
+    gpuErrchk(cudaMemcpy(d_galaxies, gal_vec.data(), gal_vec.size()*sizeof(float3), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(int), cudaMemcpyHostToDevice));
     
     int N_blocks = npcf::N_parts/N_threads + 1;
     
     countPairs<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_sizes, d_DD, N);
+    gpuErrchk(cudaPeekAtLastError());
+    gpuErrchk(cudaDeviceSynchronize());
     countTriangles<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_gals, d_sizes, d_sizes, d_DDD, N);
+    gpuErrchk(cudaPeekAtLastError());
+    gpuErrchk(cudaDeviceSynchronize());
     
-    cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(npcf::DDD.data(), d_DDD, npcf::DDD.size()*sizeof(int), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    gpuErrchk(cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(npcf::DDD.data(), d_DDD, npcf::DDD.size()*sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaDeviceSynchronize());
     
     getDR();
     getRRR();
