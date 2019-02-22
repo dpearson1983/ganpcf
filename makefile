@@ -36,25 +36,25 @@ else
 endif
 	
 obj/emulator.obj: source/emulator.f90
-	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.o
+	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.obj
 	
 obj/emulator.o: source/emulator.f90
 	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.o
 	
 obj/ganpcf_mod.obj: source/ganpcf_mod.f90
-	$(FC) $(FCFLAGS) -c source/ganpcf_mod.f90 -o obj/ganpcf_mod.o
+	$(FC) $(FCFLAGS) -c source/ganpcf_mod.f90 -o obj/ganpcf_mod.obj
 	
 obj/ganpcf_mod.o: source/ganpcf_mod.f90
 	$(FC) $(FCFLAGS) -c source/ganpcf_mod.f90 -o obj/ganpcf_mod.o
 
 obj/ganpcf_capi.obj: source/ganpcf_capi.cpp
-	$(CXX) $(CXXFLAGS) $(CXXINCLUDE) -c source/ganpcf_capi.cpp -Fo"obj\ganpcf_capi.o"
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDE) -c source/ganpcf_capi.cpp -Fo"obj\ganpcf_capi.obj"
 
 obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 	$(CXX) $(CXXFLAGS) -c source/ganpcf_capi.cpp -o obj/ganpcf_capi.o
 	
 obj/ganpcf.obj: source/ganpcf.cu
-	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
+	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.obj
 	
 obj/ganpcf.o: source/ganpcf.cu
 	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
