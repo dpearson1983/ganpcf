@@ -26,7 +26,11 @@ VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
 LDFLAGS = -lstdc++ -lgfortran -lcuda -lcudart
 
 emulator: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o obj/emulator.o
+ifeq ($(OS),Windows_NT)
+	$(VXX) $(VXXFLAGS) $^ -o emulator
+else
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o emulator
+endif
 	
 obj/emulator.o: source/emulator.f90
 	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.o
