@@ -5,10 +5,10 @@ VXX = nvcc $(ARCHS) -ccbin=cuda-g++
 FCFLAGS = -march=native -mtune=native -O3
 CXXFLAGS = -march=native -mtune=native -O3
 VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
-LDFLAGS = -lstdc++ -lcudart -lcuda
+LDFLAGS = -lstdc++ -lgfortran
 
 emulator: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o obj/emulator.o
-	$(FC) $(LDFLAGS) $^ -o emulator
+	$(VXX) $(VXXFLAGS) $(LDFLAGS) $^ -o emulator
 	
 obj/emulator.o: source/emulator.f90
 	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.o
