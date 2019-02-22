@@ -3,7 +3,8 @@ VXX = nvcc $(ARCHS)
 ifeq ($(OS),Windows_NT)
 	FC = gfortran
 	CXX = cl
-	CXXFLAGS = -O2 -D WIN32 -I'C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/include'
+	CXXFLAGS = -O2 -D WIN32 
+	CXXINCLUDE = -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include"
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
 		CXXFLAGS += -D AMD64
 	else
@@ -32,9 +33,14 @@ obj/emulator.o: source/emulator.f90
 	
 obj/ganpcf_mod.o: source/ganpcf_mod.f90
 	$(FC) $(FCFLAGS) -c source/ganpcf_mod.f90 -o obj/ganpcf_mod.o
-	
+
+if ($(OS),Windows_NT)
+obj/ganpcf_capi.o: souce/ganpcf_capi.cpp
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDE) -c source/ganpcf_capi.cpp /OUT:"obj/ganpcf_capi.o"
+else
 obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 	$(CXX) $(CXXFLAGS) -c source/ganpcf_capi.cpp -o obj/ganpcf_capi.o
+endif
 	
 obj/ganpcf.o: source/ganpcf.cu
 	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
