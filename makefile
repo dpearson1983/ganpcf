@@ -36,7 +36,7 @@ obj/ganpcf_mod.o: source/ganpcf_mod.f90
 
 ifeq ($(OS),Windows_NT)
 obj/ganpcf_capi.o: source/ganpcf_capi.cpp
-	$(CXX) $(CXXFLAGS) $(CXXINCLUDE) -c source/ganpcf_capi.cpp /OUT:"\obj\ganpcf_capi.o"
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDE) -c source/ganpcf_capi.cpp /Fo "\obj\ganpcf_capi.o"
 else
 obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 	$(CXX) $(CXXFLAGS) -c source/ganpcf_capi.cpp -o obj/ganpcf_capi.o
