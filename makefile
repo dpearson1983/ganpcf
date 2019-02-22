@@ -4,6 +4,7 @@ ifeq ($(OS),Windows_NT)
 	FC = gfortran
 	CXX = cl
 	CXXFLAGS = -O2 -D WIN32 -D_USE_MATH_DEFINES
+	LDFLAGS = -lc++ -lgfortran -lcuda -lcudart
 	CXXINCLUDE = -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include"
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
 		CXXFLAGS += -D AMD64
@@ -23,7 +24,6 @@ else
 endif
 FCFLAGS = -march=native -mtune=native -O3
 VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
-LDFLAGS = -lstdc++ -lgfortran -lcuda -lcudart
 
 emulator: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o obj/emulator.o
 ifeq ($(OS),Windows_NT)
