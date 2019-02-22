@@ -61,13 +61,13 @@ program emulator
         ! Your code would then compute the likelihood and move to the next parameter vector guess
         
     ! Output the 2 and 3 point functions for testing purposes
-    open(2, file = 'twoPoint.dat', status = 'new')
+    open(2, file = 'twoPoint.dat', action = 'write', status = 'replace')
     do i = 1,numshells
         write (2,*), shells(i), twoPoint(i)
     end do
     close(2)
     
-    open(3, file = 'threePoint.dat', status = 'new')
+    open(3, file = 'threePoint.dat', action = 'write', status = 'replace')
     do i = 1,numTriangles
         write (3,*), triangles(i), threePoint(i)
     end do
