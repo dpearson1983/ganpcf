@@ -27,7 +27,7 @@ LDFLAGS = -lstdc++ -lgfortran -lcuda -lcudart
 
 emulator: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o obj/emulator.o
 ifeq ($(OS),Windows_NT)
-	$(VXX) $(VXXFLAGS) $^ -o emulator
+	$(VXX) $(VXXFLAGS) $(LDFLAGS) $^ -o emulator
 else
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o emulator
 endif
