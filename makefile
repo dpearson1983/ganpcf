@@ -1,3 +1,5 @@
+ARCHS = -gencode arch=compute_50,code=sm_50 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_75,code=sm_75
+VXX = nvcc $(ARCHS)
 ifeq ($(OS),Windows_NT)
 	FC = gfortran
 	CXX = cl
@@ -13,12 +15,11 @@ ifeq ($(OS),Windows_NT)
 		endif
 	endif
 else
+	VXX += -ccbin=cuda-g++
 	FC = gfortran
 	CXX = g++
 	CXXFLAGS = -march=native -mtune=native -O3
 endif
-ARCHS = -gencode arch=compute_50,code=sm_50 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_75,code=sm_75
-VXX = nvcc $(ARCHS) -ccbin=cuda-g++
 FCFLAGS = -march=native -mtune=native -O3
 VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
 LDFLAGS = -lstdc++ -lgfortran -lcuda -lcudart
