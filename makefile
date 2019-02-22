@@ -60,6 +60,10 @@ obj/ganpcf.o: source/ganpcf.cu
 	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
 
 clean:
+ifeq ($(OS),Windows_NT)
+	rm obj/*.obj
+else
 	rm obj/*.o
+endif
 	rm libnpcf.mod
 	rm emulator
