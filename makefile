@@ -4,7 +4,7 @@ ifeq ($(OS),Windows_NT)
 	FC = gfortran
 	CXX = cl
 	CXXFLAGS = -O2 -D WIN32 -D_USE_MATH_DEFINES
-	LDFLAGS = -lgfortran -lcuda -lcudart
+	LDFLAGS = -L "C:/TDM-GCC-64/lib/gcc/x86_64-w64-mingw32/5.1.0" -lgfortran -lcuda -lcudart
 	CXXINCLUDE = -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include"
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
 		CXXFLAGS += -D AMD64
