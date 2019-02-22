@@ -34,7 +34,7 @@ obj/emulator.o: source/emulator.f90
 obj/ganpcf_mod.o: source/ganpcf_mod.f90
 	$(FC) $(FCFLAGS) -c source/ganpcf_mod.f90 -o obj/ganpcf_mod.o
 
-if ($(OS),Windows_NT)
+ifeq ($(OS),Windows_NT)
 obj/ganpcf_capi.o: souce/ganpcf_capi.cpp
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDE) -c source/ganpcf_capi.cpp /OUT:"obj/ganpcf_capi.o"
 else
