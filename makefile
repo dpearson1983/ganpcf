@@ -4,7 +4,7 @@ ifeq ($(OS),Windows_NT)
 	FC = gfortran
 	CXX = cl
 	CXXFLAGS = -O2 -D WIN32 -D_USE_MATH_DEFINES
-	LDFLAGS = "C:/TDM-GCC-64/lib/gcc/x86_64-w64-mingw32/5.1.0/libgfortran.dll.a"
+	LDFLAGS = -lgfortran
 	CXXINCLUDE = -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include"
 	OBJECTS = obj/ganpcf_mod.obj obj/ganpcf_capi.obj obj/ganpcf.obj obj/emulator.obj
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
