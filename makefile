@@ -3,7 +3,7 @@ VXX = nvcc $(ARCHS)
 ifeq ($(OS),Windows_NT)
 	FC = gfortran
 	CXX = cl
-	CXXFLAGS = -O2 -D WIN32 -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include"
+	CXXFLAGS = -O2 -D WIN32 -I'C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/include'
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
 		CXXFLAGS += -D AMD64
 	else
