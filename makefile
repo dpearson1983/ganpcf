@@ -21,6 +21,7 @@ else
 	FC = gfortran
 	CXX = g++
 	CXXFLAGS = -march=native -mtune=native -O3
+	LDFLAGS = -lstdc++ -lgfortran -lcuda -lcudart
 endif
 FCFLAGS = -march=native -mtune=native -O3
 VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
