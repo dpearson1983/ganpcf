@@ -1,7 +1,12 @@
+OS = $(shell lsb_release -si)
 FC = gfortran
-CXX = cuda-g++
+ifeq ($(OS),Fedora)
+	CXX = cuda-g++
+else
+	CXX = g++
+endif
 ARCHS = -gencode arch=compute_50,code=sm_50 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_75,code=sm_75
-VXX = nvcc $(ARCHS) -ccbin=cuda-g++
+VXX = nvcc $(ARCHS) -ccbin=$(CXX)
 FCFLAGS = -march=native -mtune=native -O3
 CXXFLAGS = -march=native -mtune=native -O3
 VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
