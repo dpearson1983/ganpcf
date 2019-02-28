@@ -13,7 +13,7 @@ VXXFLAGS = -Xptxas -dlcm=ca -lineinfo --compiler-options "$(CXXFLAGS)" -O3
 LDFLAGS = -lstdc++ -lcudart -lcuda
 
 emulator: library obj/emulator.o
-	$(FC) $(LDFLAGS) -lganpcf obj/emulator.o -o emulator
+	$(FC) -lganpcf obj/emulator.o -o emulator
 	
 library: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o
 	$(FC) $(LDFLAGS) $^ -fPIC -shared -o libganpcf.so
