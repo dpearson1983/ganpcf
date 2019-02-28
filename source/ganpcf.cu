@@ -13,6 +13,7 @@ __constant__ int3 d_shifts[27];
 __constant__ float d_R;
 __constant__ float d_r;
 __constant__ float3 d_L;
+__constant__ double d_Lc;
 __constant__ int d_Nshells;
 __constant__ int d_Nparts;
 
@@ -326,10 +327,10 @@ __global__ void countPairs(float3 *d_p1, float3 **d_p2, int *p2_sizes, int *d_pa
     
     if (tid < d_Nparts) {
         float3 r1 = d_p1[tid];
-        int4 ngp1 = {int(r1.x/d_R), int(r1.y/d_R), int(r1.z/d_R), 0};
+        int4 ngp1 = {int(r1.x/d_Lc), int(r1.y/d_Lc), int(r1.z/d_Lc), 0};
         if (ngp1.x == n.x) ngp1.x--;
-        if (ngp1.y == n.x) ngp1.y--;
-        if (ngp1.z == n.x) ngp1.z--;
+        if (ngp1.y == n.y) ngp1.y--;
+        if (ngp1.z == n.z) ngp1.z--;
         for (int i = 0; i < 27; ++i) {
             float3 rShift2;
             int4 index = get_index(ngp1, i, n, rShift2);
@@ -356,10 +357,10 @@ __global__ void countTriangles(float3 *d_p1, float3 **d_p2, float3 **d_p3, int *
     
     if (tid < d_Nparts) {
         float3 r1 = d_p1[tid];
-        int4 ngp1 = {int(r1.x/d_R), int(r1.y/d_R), int(r1.z/d_R), 0};
+        int4 ngp1 = {int(r1.x/d_Lc), int(r1.y/d_Lc), int(r1.z/d_Lc), 0};
         if (ngp1.x == n.x) ngp1.x--;
-        if (ngp1.y == n.x) ngp1.y--;
-        if (ngp1.z == n.x) ngp1.z--;
+        if (ngp1.y == n.y) ngp1.y--;
+        if (ngp1.z == n.z) ngp1.z--;
         for (int i = 0; i < 27; ++i) {
             float3 rShift2;
             int4 index = get_index(ngp1, i, n, rShift2);
@@ -429,6 +430,11 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     float r = (float)npcf::r_min;
     std::vector<int3> shifts = getShifts();
     
+    // Find the cell size such that the box size is an integer multiple of the cell size
+    int l_c = floor(L.x/R);
+    double L_c = L.x/l_c;
+    int3 N = {l_c, l_c, l_c};
+    
     npcf::rezeroVectors();
     
     int numParts = npcf::N_parts;
@@ -440,11 +446,7 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     gpuErrchk(cudaMemcpyToSymbol(d_r, &r, sizeof(float)));
     gpuErrchk(cudaMemcpyToSymbol(d_Nparts, &numParts, sizeof(int)));
     gpuErrchk(cudaMemcpyToSymbol(d_Nshells, &numShells, sizeof(int)));
-    
-    // Find the cell size such that the box size is an integer multiple of the cell size
-    int l_c = floor(L.x/R);
-    double L_c = L.x/l_c;
-    int3 N = {l_c, l_c, l_c};
+    gpuErrchk(cudaMemcpyToSymbol(d_Lc, &L_c, sizeof(double)));
     
     std::vector<std::vector<float3>> gals(N.x*N.y*N.z);
     std::vector<int> sizes;
