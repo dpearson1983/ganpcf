@@ -1,3 +1,4 @@
+include makefile.cudacompute
 OS = $(shell lsb_release -si)
 FC = gfortran
 ifeq ($(OS),Fedora)
@@ -5,14 +6,8 @@ ifeq ($(OS),Fedora)
 else
 	CXX = g++
 endif
-ARCHS += -gencode arch=compute_30,code=sm_30
-ARCHS += -gencode arch=compute_35,code=sm_35
-ARCHS += -gencode arch=compute_50,code=sm_50
-ARCHS += -gencode arch=compute_52,code=sm_52
-ARCHS += -gencode arch=compute_60,code=sm_60
-ARCHS += -gencode arch=compute_61,code=sm_61
-ARCHS += -gencode arch=compute_70,code=sm_70
-ARCHS += -gencode arch=compute_75,code=sm_75
+
+
 VXX = nvcc $(ARCHS) -ccbin=$(CXX)
 FCFLAGS = -march=native -mtune=native -O3 -cpp
 CXXFLAGS = -march=native -mtune=native -O3 -fPIC

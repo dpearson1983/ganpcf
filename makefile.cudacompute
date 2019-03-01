@@ -1,0 +1,28 @@
+ARCHS += -gencode arch=compute_30,code=sm_30
+ARCHS += -gencode arch=compute_35,code=sm_35
+ARCHS += -gencode arch=compute_50,code=sm_50
+ARCHS += -gencode arch=compute_52,code=sm_52
+ARCHS += -gencode arch=compute_60,code=sm_60
+ARCHS += -gencode arch=compute_61,code=sm_61
+ARCHS += -gencode arch=compute_70,code=sm_70
+ARCHS += -gencode arch=compute_75,code=sm_75
+
+
+# Below was an attempt to detect the specific GPUs on a Linux system and build code only for those to reduce
+# library size. However, this attempt did not work. I've left this commented here in case I decide to revisit
+# the idea in the future as I believe some of the steps are at least on the right track.
+#
+#
+# GPUS = $(shell nvidia-smi --query-gpu=gpu_name --format=csv,noheader)
+# SM_30 = K10 K5000 K4200 K4000 K2200 K2000 K2000D K600 K420 410 K1100M K2100M K2200M K3100M K4100M K4200M K500M K5100M K5200M K6000M 770 760 690 680 670 660 650 735M 640M 730M 740M 745M 645M 650M 660M 670MX 750M 755M 675MX 680M 680MX 760M 765M 770M 780M 870M 880M
+# SM_35 = K40 K20 K6000 K5200 K510M K610M TITAN
+# SM_50 = 'GeForce GTX 960m'
+# SM_52 = 'GeForce GTX 950'
+# SM_60 = P100
+# SM_61 = GeForce 1070 GeForce 1070 Ti
+# SM_70 = V100
+# SM_75 = RTX 1660
+# $(info $(GPUS))
+# ifneq (,$(findstring $(GPUS), $(SM_30)))
+# $(info ****** Compute capability 3.0 card found ******)
+# endif
