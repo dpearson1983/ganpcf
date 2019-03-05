@@ -16,7 +16,7 @@ LDFLAGS = -lstdc++ -lcudart -lcuda
 
 library: obj/ganpcf_mod.o obj/ganpcf_capi.o obj/ganpcf.o
 	$(FC) $(LDFLAGS) $^ -fPIC -shared -o libganpcf.so
-	$(MAKE) test
+	$(MAKE) test/emulator
 	
 obj/ganpcf_mod.o: source/ganpcf_mod.f90
 	$(FC) $(FCFLAGS) -fPIC -c source/ganpcf_mod.f90 -o obj/ganpcf_mod.o
@@ -27,11 +27,8 @@ obj/ganpcf_capi.o: source/ganpcf_capi.cpp
 obj/ganpcf.o: source/ganpcf.cu
 	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
 	
-test: obj/emulator.o
-	$(FC) -lganpcf obj/emulator.o -o test/emulator
-	
-obj/emulator.o: source/emulator.f90
-	$(FC) $(FCFLAGS) -c source/emulator.f90 -o obj/emulator.o
+test/emulator: source/emulator.f90
+	$(FC) $(FCFLAGS) -lganpcf source/emulator.f90 -o test/emulator
 
 clean:
 	rm obj/*.o

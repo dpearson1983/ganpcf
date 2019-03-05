@@ -14,15 +14,31 @@ ARCHS += -gencode arch=compute_75,code=sm_75
 #
 #
 # GPUS = $(shell nvidia-smi --query-gpu=gpu_name --format=csv,noheader)
+# $(info $(GPUS))
 # SM_30 = K10 K5000 K4200 K4000 K2200 K2000 K2000D K600 K420 410 K1100M K2100M K2200M K3100M K4100M K4200M K500M K5100M K5200M K6000M 770 760 690 680 670 660 650 735M 640M 730M 740M 745M 645M 650M 660M 670MX 750M 755M 675MX 680M 680MX 760M 765M 770M 780M 870M 880M
 # SM_35 = K40 K20 K6000 K5200 K510M K610M TITAN
 # SM_50 = 'GeForce GTX 960m'
-# SM_52 = 'GeForce GTX 950'
+# SM_52 = 950 960 970 980
 # SM_60 = P100
-# SM_61 = GeForce 1070 GeForce 1070 Ti
+# SM_61 = 1050 1060 1070 1080
+# sm61 = $(foreach gpu, $(GPUS), $(findstring $(gpu), $(SM_61)))
+# $(info $(sm61))
+# ifneq ($(foreach gpu, $(GPUS), $(findstring $(gpu), $(SM_52))),)
+# $(info ****** Compute capability 5.2 card found ******)
+# $(info ****** $(gpu) ******)
+# endif
+# ifneq (,$(sm61))
+# $(info ****** Compute capability 6.1 card found ******)
+# $(info ****** $(sm61) ******)
+# endif
+# $(foreach gpu, $(GPUS), $(info $(findstring $(gpu), $(SM_61))))
 # SM_70 = V100
 # SM_75 = RTX 1660
 # $(info $(GPUS))
 # ifneq (,$(findstring $(GPUS), $(SM_30)))
 # $(info ****** Compute capability 3.0 card found ******)
+# endif
+
+# ifneq (,$(findstring $(foreach gpu, $(GPUS), $(gpu)), $(SM_61)))
+# $(info Working)
 # endif
