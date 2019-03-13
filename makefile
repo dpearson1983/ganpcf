@@ -3,6 +3,7 @@ OS = $(shell lsb_release -si)
 FC = gfortran
 ifeq ($(OS),Fedora)
 	CXX = cuda-g++
+	FC = cuda-gfortran
 else
 	CXX = g++
 endif
@@ -28,10 +29,12 @@ obj/ganpcf.o: source/ganpcf.cu
 	$(VXX) $(VXXFLAGS) -dw source/ganpcf.cu -o obj/ganpcf.o
 	
 test/emulator: source/emulator.f90
+	$(shell cp libganpcf.so test)
 	$(FC) $(FCFLAGS) -lganpcf source/emulator.f90 -o test/emulator
 
 clean:
 	rm obj/*.o
 	rm libnpcf.mod
 	rm libganpcf.so
+	rm test/libganpcf.so
 	rm test/emulator
