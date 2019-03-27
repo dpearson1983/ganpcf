@@ -14,7 +14,7 @@ program emulator
     ! Information for setting up the correlation function object
     timesRans = 10
     numShells = 32
-    V_box = 1024.0**3
+    V_box = 2500.0**3
     r_max = 32.0
     r_min = 0.0
     
@@ -39,7 +39,7 @@ program emulator
     ! This part of the code emulates what you will need to do in the looping structure of the MCMC chain
         
         ! Instead of reading from a file, your code will generate the list of galaxies
-        open(1, file = 'LNKNLogsVelFortran_01.dat', status = 'old')
+        open(1, file = 'central_output.txt', status = 'old')
         read (1,*) s1
         allocate(pos(s1)) 
         

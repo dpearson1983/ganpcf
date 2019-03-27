@@ -3,7 +3,7 @@ OS = $(shell lsb_release -si)
 FC = gfortran
 ifeq ($(OS),Fedora)
 	CXX = cuda-g++
-	FC = cuda-gfortran
+# 	FC = cuda-gfortran
 else
 	CXX = g++
 endif
