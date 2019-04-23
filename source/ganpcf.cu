@@ -462,7 +462,7 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
         int iz = galaxies[0][i].z/L_c;
         if (iz == N.z) iz--;
         int index = iz + N.z*(iy + N.y*ix);
-        if (index >= gals.size()) {
+        if (index >= gals.size() || index < 0) {
             std::stringstream errMsg;
             errMsg << "Index out of range\n";
             errMsg << "   index = " << index << "\n";
