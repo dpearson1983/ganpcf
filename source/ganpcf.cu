@@ -546,6 +546,108 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     return 1;
 }
 
+int npcf::calculate2pt(float3 *galaxies[]) {
+    float l = (float)pow(npcf::V_box, 1.0/3.0);
+    float3 L = {l, l, l};
+    float R = (float)npcf::r_max;
+    float r = (float)npcf::r_min;
+    std::vector<int3> shifts = getShifts();
+    
+    // Find the cell size such that the box size is an integer multiple of the cell size
+    int l_c = floor(L.x/R);
+    double L_c = L.x/l_c;
+    int3 N = {l_c, l_c, l_c};
+    
+    npcf::rezeroVectors();
+    
+    int numParts = npcf::N_parts;
+    int numShells = npcf::N_shells;
+    
+    gpuErrchk(cudaMemcpyToSymbol(d_shifts, shifts.data(), shifts.size()*sizeof(int3)));
+    gpuErrchk(cudaMemcpyToSymbol(d_L, &L, sizeof(float3)));
+    gpuErrchk(cudaMemcpyToSymbol(d_R, &R, sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(d_r, &r, sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(d_Nparts, &numParts, sizeof(int)));
+    gpuErrchk(cudaMemcpyToSymbol(d_Nshells, &numShells, sizeof(int)));
+    gpuErrchk(cudaMemcpyToSymbol(d_Lc, &L_c, sizeof(double)));
+    
+    std::vector<std::vector<float3>> gals(N.x*N.y*N.z);
+    std::vector<int> sizes;
+    float3 **d_gals;
+    float3 *d_galaxies;
+    int *d_DD, *d_sizes;
+    
+    for (int i = 0; i < npcf::N_parts; ++i) {
+        int ix = galaxies[0][i].x/L_c;
+        if (ix == N.x) ix--;
+        int iy = galaxies[0][i].y/L_c;
+        if (iy == N.y) iy--;
+        int iz = galaxies[0][i].z/L_c;
+        if (iz == N.z) iz--;
+        int index = iz + N.z*(iy + N.y*ix);
+        if (index >= gals.size() || index < 0) {
+            std::stringstream errMsg;
+            errMsg << "Index out of range\n";
+            errMsg << "   index = " << index << "\n";
+            errMsg << "   gals.size() = " << gals.size() << "\n";
+            errMsg << "   position = (" << galaxies[0][i].x << ", " << galaxies[0][i].y << ", " << galaxies[0][i].z << ")" << "\n";
+            errMsg << "   indices = (" << ix << ", " << iy << ", " << iz << ")\n";
+            throw std::runtime_error(errMsg.str());
+        }
+        gals[index].push_back(galaxies[0][i]);
+    }
+    
+    std::vector<float3> gal_vec;
+    float3 **h_gals = (float3 **)malloc(gals.size()*sizeof(float3 *));
+    for (int i = 0; i < gals.size(); ++i) {
+        sizes.push_back(gals[i].size());
+        gpuErrchk(cudaMalloc((void **)&h_gals[i], gals[i].size()*sizeof(float3)));
+        gpuErrchk(cudaMemcpy(h_gals[i], gals[i].data(), gals[i].size()*sizeof(float3), cudaMemcpyHostToDevice));
+        for (int j = 0; j < gals[i].size(); ++j) {
+//             galaxies[0][j].x = gals[i][j].x;
+//             galaxies[0][j].y = gals[i][j].y;
+//             galaxies[0][j].z = gals[i][j].z;
+            gal_vec.push_back(gals[i][j]);
+        }
+    }
+    gpuErrchk(cudaMalloc(&d_gals, gals.size()*sizeof(float3 *)));
+    gpuErrchk(cudaMemcpy(d_gals, h_gals, gals.size()*sizeof(float3 *), cudaMemcpyHostToDevice));
+    
+    gpuErrchk(cudaMalloc((void **)&d_galaxies, npcf::N_parts*sizeof(float3)));
+    gpuErrchk(cudaMalloc((void **)&d_sizes, sizes.size()*sizeof(int)));
+    gpuErrchk(cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int)));
+    
+    gpuErrchk(cudaMemcpy(d_galaxies, gal_vec.data(), gal_vec.size()*sizeof(float3), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice));
+    
+    int N_blocks = npcf::N_parts/N_threads + 1;
+    
+    countPairs<<<N_blocks, N_threads>>>(d_galaxies, d_gals, d_sizes, d_DD, N);
+    gpuErrchk(cudaPeekAtLastError());
+    gpuErrchk(cudaDeviceSynchronize());
+    
+    gpuErrchk(cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaDeviceSynchronize());
+    
+    getDR();
+    
+    double alpha = double(npcf::N_parts)/double(npcf::N_rans);
+    for (int i = 0; i < npcf::twoPoint.size(); ++i) {
+        npcf::twoPoint[i] = double(npcf::DD[i])/(alpha*double(npcf::DR[i])) - 1.0;
+    }
+    
+    cudaFree(d_DD);
+    cudaFree(d_sizes);
+    cudaFree(d_galaxies);
+    for (int i = 0; i < gals.size(); ++i) {
+        cudaFree(h_gals[i]);
+    }
+    cudaFree(d_gals);
+    delete[] h_gals;
+    return 1;
+}
+
 int npcf::get2pt(double *twoPt[]) {
     for (int i = 0; i < npcf::twoPoint.size(); ++i) {
         twoPt[0][i] = npcf::twoPoint[i];

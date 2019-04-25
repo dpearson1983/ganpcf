@@ -75,6 +75,14 @@ interface
         type(float3), dimension(:) :: galaxies
     end function
     
+    function calculate_2pt_c(obj, galaxies) bind(C, name="calculate_2pt")
+        use iso_c_binding
+        import :: float3
+        integer(c_int) :: calculate_2pt_c
+        type(c_ptr), value :: obj
+        type(float3), dimension(:) :: galaxies
+    end function
+    
     function get_2pt_c(obj, twoPoint) bind(C, name="get_2pt")
         use iso_c_binding
         implicit none

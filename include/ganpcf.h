@@ -28,6 +28,8 @@ extern "C" {
     
     int calculate_correlations(NPCF *obj, float3 *galaxies[]);
     
+    int calculate_2pt(NPCF *obj, float3 *galaxies[]);
+    
     int get_2pt(NPCF *obj, double *twoPt[]);
     
     int get_3pt(NPCF *obj, double *threePt[]);

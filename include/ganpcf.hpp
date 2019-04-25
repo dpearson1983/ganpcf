@@ -61,6 +61,8 @@ class npcf{
         
         int calculateCorrelations(float3 *galaxies[]);
         
+        int calculate2pt(float3 *galaxies[]);
+        
         int get2pt(double *twoPt[]);
         
         int get3pt(double *threePt[]);

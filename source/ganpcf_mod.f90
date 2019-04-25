@@ -23,6 +23,7 @@ module libnpcf
         procedure :: get2ptSize => get_2pt_size
         procedure :: get3ptSize => get_3pt_size
         procedure :: calculateCorrelations => calculate_correlations
+        procedure :: calculate2pt => calculate_2pt
         procedure :: get2pt => get_2pt
         procedure :: get3pt => get_3pt
     end type
@@ -99,6 +100,13 @@ module libnpcf
             class(npcf) :: this
             type(float3), dimension(:) :: galaxies
             calculate_correlations = calculate_correlations_c(this%ptr, galaxies)
+        end function
+        
+        integer function calculate_2pt(this, galaxies)
+            implicit none
+            class(npcf) :: this
+            type(float3), dimension(:) :: galaxies
+            calculate_2pt = calculate_2pt_c(this%ptr, galaxies)
         end function
         
         integer function get_2pt(this, twoPoint)

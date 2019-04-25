@@ -37,6 +37,10 @@ int calculate_correlations(NPCF *obj, float3 *galaxies[]) {
     return obj->calculateCorrelations(galaxies);
 }
 
+int calculate_2pt(NPCF *obj, float3 *galaxies[]) {
+    return obj->calculate2pt(galaxies);
+}
+
 int get_2pt(NPCF *obj, double *twoPt[]) {
     return obj->get2pt(twoPt);
 }
