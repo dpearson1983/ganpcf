@@ -654,7 +654,7 @@ int npcf::calculate2pt(float3 *galaxies[]) {
     double alpha = double(npcf::N_parts)/double(npcf::N_rans);
     double invAlpha = 1.0/alpha;
     for (int i = 0; i < npcf::twoPoint.size(); ++i) {
-        npcf::twoPoint[i] = invAlpha*invAlpha*double(npcf::DD[i])/double(npcf::RR[i]) - 1.0;
+        npcf::twoPoint[i] = invAlpha*double(npcf::DD[i])/double(npcf::DR[i]) - 1.0;
     }
     
     cudaFree(d_DD);
