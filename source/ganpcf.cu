@@ -1,4 +1,5 @@
 #include <iostream>
+// #include <fstream>
 #include <vector>
 #include <cmath>
 #include <cuda.h>
@@ -24,6 +25,7 @@ void npcf::initVectors() {
         npcf::twoPoint.push_back(0.0);
         npcf::DD.push_back(0);
         npcf::DR.push_back(0);
+        npcf::RR.push_back(0);
         for (int j = i; j < npcf::N_shells; ++j) {
             double r2 = npcf::r_min + (j + 0.5)*npcf::Delta_r;
             for (int k = j; k < npcf::N_shells; ++k) {
@@ -187,7 +189,7 @@ void npcf::getRRR() {
                     int index = k + npcf::N_shells*(j + npcf::N_shells*i);
                     double V = npcf::gaussQuadCrossSection(npcf::rs[i], npcf::rs[j], npcf::rs[k]);
                     int n_perm = npcf::getPermutations(npcf::rs[i], npcf::rs[j], npcf::rs[k]);
-                    npcf::RRR[index] = int(4.0*M_PI*n_perm*npcf::nbar_ran*npcf::nbar_ran*V*npcf::N_rans);
+                    npcf::RRR[index] = (unsigned long long int)(4.0*M_PI*n_perm*npcf::nbar_ran*npcf::nbar_ran*V*npcf::N_rans);
                 }
             }
         }
@@ -202,7 +204,7 @@ void npcf::getDRR() {
                     int index = k + npcf::N_shells*(j + npcf::N_shells*i);
                     double V = npcf::gaussQuadCrossSection(npcf::rs[i], npcf::rs[j], npcf::rs[k]);
                     int n_perm = npcf::getPermutations(npcf::rs[i], npcf::rs[j], npcf::rs[k]);
-                    npcf::DRR[index] = int(4.0*M_PI*n_perm*npcf::nbar_ran*npcf::nbar_ran*V*npcf::N_parts);
+                    npcf::DRR[index] = (unsigned long long int)(4.0*M_PI*n_perm*npcf::nbar_ran*npcf::nbar_ran*V*npcf::N_parts);
                 }
             }
         }
@@ -237,7 +239,7 @@ void npcf::getDDR() {
                        V = npcf::gaussQuadCrossSectionDDR(r3, r1, r2);
                        N_temp += 4.0*M_PI*npcf::nbar_ran*V*npcf::N_parts;
                    }
-                   npcf::DDR[index] = int(floor(N_temp + 0.5));
+                   npcf::DDR[index] = (unsigned long long int)(floor(N_temp + 0.5));
                 }
             }
         }
@@ -247,6 +249,12 @@ void npcf::getDDR() {
 void npcf::getDR() {
     for (int i = 0; i < npcf::rs.size(); ++i) {
         npcf::DR[i] = npcf::sphericalShellVolume(npcf::rs[i])*npcf::nbar_ran*npcf::N_parts;
+    }
+}
+
+void npcf::getRR() {
+    for (int i = 0; i < npcf::rs.size(); ++i) {
+        npcf::RR[i] = npcf::sphericalShellVolume(npcf::rs[i])*npcf::nbar_ran*npcf::nbar_ran*npcf::V_box;
     }
 }
 
@@ -320,7 +328,7 @@ __device__ int4 get_index(int4 ngp, int i, int3 n, float3 &rShift) {
     return ngp;
 }
 
-__global__ void countPairs(float3 *d_p1, float3 **d_p2, int *p2_sizes, int *d_partsPerShell, int3 n) {
+__global__ void countPairs(float3 *d_p1, float3 **d_p2, int *p2_sizes, unsigned long long int *d_partsPerShell, int3 n) {
     // Calculate the thread ID for the current GPU thread
     int tid = threadIdx.x + blockIdx.x*blockDim.x;
     float Delta_r = (d_R - d_r)/d_Nshells;
@@ -343,7 +351,7 @@ __global__ void countPairs(float3 *d_p1, float3 **d_p2, int *p2_sizes, int *d_pa
                 float dist = get_separation(r1, r2);
                 if (dist < d_R && dist > d_r) {
                     int shell = int((dist - d_r)/Delta_r);
-                    atomicAdd(&d_partsPerShell[shell], 1);
+                    atomicAdd(&d_partsPerShell[shell], 1L);
                 }
             }
         }
@@ -351,7 +359,7 @@ __global__ void countPairs(float3 *d_p1, float3 **d_p2, int *p2_sizes, int *d_pa
 }
 
 __global__ void countTriangles(float3 *d_p1, float3 **d_p2, float3 **d_p3, int *p2_sizes, int *p3_sizes, 
-                               int *d_triangles, int3 n) {
+                               unsigned long long int *d_triangles, int3 n) {
     // Calculate the thread ID for the current GPU thread
     int tid = threadIdx.x + blockIdx.x*blockDim.x;
     
@@ -385,7 +393,7 @@ __global__ void countTriangles(float3 *d_p1, float3 **d_p2, float3 **d_p3, int *
                             float d3 = get_separation(r2, r3);
                             if (d2 < d_R && d3 < d_R && d2 > d_r && d3 > d_r) {
                                 int shell = get_shell(d1, d2, d3);
-                                atomicAdd(&d_triangles[shell], 1);
+                                atomicAdd(&d_triangles[shell], 1L);
                             }
                         }
                     }
@@ -452,7 +460,8 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     std::vector<int> sizes;
     float3 **d_gals;
     float3 *d_galaxies;
-    int *d_DD, *d_DDD, *d_sizes;
+    unsigned long long int *d_DD, *d_DDD;
+    int *d_sizes;
     
     for (int i = 0; i < npcf::N_parts; ++i) {
         int ix = galaxies[0][i].x/L_c;
@@ -492,13 +501,13 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     
     gpuErrchk(cudaMalloc((void **)&d_galaxies, npcf::N_parts*sizeof(float3)));
     gpuErrchk(cudaMalloc((void **)&d_sizes, sizes.size()*sizeof(int)));
-    gpuErrchk(cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int)));
-    gpuErrchk(cudaMalloc((void **)&d_DDD, npcf::DDD.size()*sizeof(int)));
+    gpuErrchk(cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(unsigned long long int)));
+    gpuErrchk(cudaMalloc((void **)&d_DDD, npcf::DDD.size()*sizeof(unsigned long long int)));
     
     gpuErrchk(cudaMemcpy(d_galaxies, gal_vec.data(), gal_vec.size()*sizeof(float3), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(unsigned long long int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_DDD, npcf::DDD.data(), npcf::DDD.size()*sizeof(unsigned long long int), cudaMemcpyHostToDevice));
     
     int N_blocks = npcf::N_parts/N_threads + 1;
     
@@ -509,8 +518,8 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
     
-    gpuErrchk(cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(int), cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaMemcpy(npcf::DDD.data(), d_DDD, npcf::DDD.size()*sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(npcf::DDD.data(), d_DDD, npcf::DDD.size()*sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
     gpuErrchk(cudaDeviceSynchronize());
     
     getDR();
@@ -518,21 +527,29 @@ int npcf::calculateCorrelations(float3 *galaxies[]) {
     getDRR();
     getDDR();
     
+//     std::ofstream fout("2pointCounts.dat");
+//     fout.precision(15);
     double alpha = double(npcf::N_parts)/double(npcf::N_rans);
+    double invAlpha = 1.0/alpha;
     for (int i = 0; i < npcf::twoPoint.size(); ++i) {
-        npcf::twoPoint[i] = double(npcf::DD[i])/(alpha*double(npcf::DR[i])) - 1.0;
+        npcf::twoPoint[i] = invAlpha*double(npcf::DD[i])/double(npcf::DR[i]) - 1.0;
+//         fout << DD[i] << " " << DR[i] << "\n";
     }
-    
+//     fout.close();
+
+//     fout.open("3pointCounts.dat");
+//     fout.precision(15);
     for (int i = 0; i < npcf::threePoint.size(); ++i) {
         int ix = npcf::triangles[i].x/npcf::Delta_r;
         int iy = npcf::triangles[i].y/npcf::Delta_r;
         int iz = npcf::triangles[i].z/npcf::Delta_r;
         int index = iz + npcf::N_shells*(iy + npcf::N_shells*ix);
-        npcf::threePoint[i] = (double(npcf::DDD[index]) - 3.0*alpha*double(npcf::DDR[index]) 
-                               + 3.0*alpha*alpha*double(npcf::DRR[index]) -
-                               alpha*alpha*alpha*double(npcf::RRR[index]))/
-                               (alpha*alpha*alpha*double(npcf::RRR[index]));
+        npcf::threePoint[i] = invAlpha*invAlpha*invAlpha*(double(DDD[index])/double(RRR[index]))
+                              - 3.0*invAlpha*invAlpha*(double(DDR[index])/double(RRR[index]))
+                              + 3.0*invAlpha*(double(DRR[index])/double(RRR[index])) - 1.0;
+//         fout << DDD[index] << " " << DDR[index] << " " << DRR[index] << " " << RRR[index] << "\n";
     }
+//     fout.close();
     
     cudaFree(d_DDD);
     cudaFree(d_DD);
@@ -575,7 +592,8 @@ int npcf::calculate2pt(float3 *galaxies[]) {
     std::vector<int> sizes;
     float3 **d_gals;
     float3 *d_galaxies;
-    int *d_DD, *d_sizes;
+    unsigned long long int *d_DD;
+    int *d_sizes;
     
     for (int i = 0; i < npcf::N_parts; ++i) {
         int ix = galaxies[0][i].x/L_c;
@@ -615,11 +633,11 @@ int npcf::calculate2pt(float3 *galaxies[]) {
     
     gpuErrchk(cudaMalloc((void **)&d_galaxies, npcf::N_parts*sizeof(float3)));
     gpuErrchk(cudaMalloc((void **)&d_sizes, sizes.size()*sizeof(int)));
-    gpuErrchk(cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(int)));
+    gpuErrchk(cudaMalloc((void **)&d_DD, npcf::DD.size()*sizeof(unsigned long long int)));
     
     gpuErrchk(cudaMemcpy(d_galaxies, gal_vec.data(), gal_vec.size()*sizeof(float3), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_sizes, sizes.data(), sizes.size()*sizeof(int), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_DD, npcf::DD.data(), npcf::DD.size()*sizeof(unsigned long long int), cudaMemcpyHostToDevice));
     
     int N_blocks = npcf::N_parts/N_threads + 1;
     
@@ -627,14 +645,16 @@ int npcf::calculate2pt(float3 *galaxies[]) {
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
     
-    gpuErrchk(cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(npcf::DD.data(), d_DD, npcf::DD.size()*sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
     gpuErrchk(cudaDeviceSynchronize());
     
     getDR();
+    getRR();
     
     double alpha = double(npcf::N_parts)/double(npcf::N_rans);
+    double invAlpha = 1.0/alpha;
     for (int i = 0; i < npcf::twoPoint.size(); ++i) {
-        npcf::twoPoint[i] = double(npcf::DD[i])/(alpha*double(npcf::DR[i])) - 1.0;
+        npcf::twoPoint[i] = invAlpha*invAlpha*double(npcf::DD[i])/double(npcf::RR[i]) - 1.0;
     }
     
     cudaFree(d_DD);

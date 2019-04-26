@@ -11,7 +11,7 @@ class npcf{
     std::vector<double> rs, w, x;
     std::vector<double> twoPoint, threePoint;
     std::vector<float3> triangles;
-    std::vector<int> DD, DR, DDD, DDR, DRR, RRR;
+    std::vector<unsigned long long int> DD, DR, RR, DDD, DDR, DRR, RRR;
     
     
     // Private member functions
@@ -42,6 +42,8 @@ class npcf{
     void getDDR();
     
     void getDR();
+    
+    void getRR();
     
     // Public class interface
     public:
